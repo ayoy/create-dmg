@@ -46,12 +46,18 @@ function hdiutil_detach_retry() {
 	until
 		echo "Unmounting disk image..."
 		(( unmounting_attempts++ ))
-		hdiutil detach "$1"
-		exit_code=$?
-		(( exit_code ==  0 )) && break            # nothing goes wrong
-		(( exit_code != 16 )) && exit $exit_code  # exit with the original exit code
-		# The above statement returns 1 if test failed (exit_code == 16).
-		#   It can make the code in the {do... done} block to be executed
+		if hdiutil detach "$1"; then
+			break # nothing goes wrong
+		else
+			case $? in
+				16)
+					exit $? # exit with the original exit code;
+					;;
+				*)
+					false # Execute the {do... done} block
+					;;
+			esac
+		fi
 	do
 		(( unmounting_attempts == MAXIMUM_UNMOUNTING_ATTEMPTS )) && exit 16  # patience exhausted, exit with code EBUSY
 		echo "Wait a moment..."
@@ -66,12 +72,18 @@ function hdiutil_create_retry() {
 	until
 		echo "Creating disk image..."
 		(( create_attempts++ ))
-		hdiutil create "$@"
-		exit_code=$?
-		(( exit_code ==  0 )) && break            # nothing goes wrong
-		(( exit_code != 16 )) && exit $exit_code  # exit with the original exit code
-		# The above statement returns 1 if test failed (exit_code == 16).
-		#   It can make the code in the {do... done} block to be executed
+		if hdiutil create "$@"; then
+			break # nothing goes wrong
+		else
+			case $? in
+				16)
+					exit $? # exit with the original exit code;
+					;;
+				*)
+					false # Execute the {do... done} block
+					;;
+			esac
+		fi
 	do
 		(( create_attempts == MAXIMUM_CREATE_ATTEMPTS )) && exit 16  # patience exhausted, exit with code EBUSY
 		echo "Wait a moment..."
